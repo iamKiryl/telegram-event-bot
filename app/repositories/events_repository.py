@@ -113,9 +113,6 @@ def get_event_by_id(
             (event_id, telegram_user_id),
         )
 
-<<<<<<< HEAD
-        return cursor.fetchone()
-=======
         return cursor.fetchone()
     
 def get_event_by_position(
@@ -157,4 +154,3 @@ def update_user_event_status_in_db(
 
         conn.commit()
         return cursor.rowcount > 0
->>>>>>> 9af8b5f (feat: add inline status update flow)
