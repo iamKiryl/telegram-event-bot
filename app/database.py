@@ -26,6 +26,7 @@ def init_db():
             """
             CREATE TABLE IF NOT EXISTS events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                telegram_user_id INTEGER NOT NULL,
                 title TEXT NOT NULL,
                 event_type TEXT NOT NULL DEFAULT 'concert',
                 date_from TEXT,

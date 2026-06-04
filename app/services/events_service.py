@@ -1,4 +1,5 @@
 from app.repositories.events_repository import (
+    get_event_by_id,
     get_events_by_status,
     insert_event,
     update_event_status_in_db,
@@ -95,6 +96,7 @@ def update_event_status(event_id: int, new_status: str) -> dict:
 
 def add_event(
     title: str,
+    telegram_user_id: int,
     event_type: str = "concert",
     date_from: str | None = None,
     date_to: str | None = None,
@@ -130,14 +132,48 @@ def add_event(
         "price": price,
         "status": status,
         "notes": normalize_optional(notes),
+        "telegram_user_id": telegram_user_id,
     }
 
     new_id = insert_event(event_data)
 
     return {"id": new_id, **event_data}
 
+def update_event_status(
+    telegram_user_id: int,
+    event_id: int,
+    new_status: str,
+) -> dict:
+    new_status = new_status.strip().lower()
 
-def add_event_from_text(text: str) -> str:
+    if new_status not in VALID_STATUSES:
+        raise ValueError(
+            f"Недопустимый статус '{new_status}'. "
+            f"Допустимые значения: {', '.join(sorted(VALID_STATUSES))}"
+        )
+
+    event = get_event_by_id(telegram_user_id, event_id)
+
+    if event is None:
+        raise LookupError("Событие не найдено.")
+
+    updated = update_event_status_in_db(
+        telegram_user_id=telegram_user_id,
+        event_id=event_id,
+        new_status=new_status,
+    )
+
+    if not updated:
+        raise LookupError("Не удалось обновить событие.")
+
+    return {
+        "event_id": event_id,
+        "title": event["title"],
+        "new_status": new_status,
+        "success": True,
+    }
+
+def add_event_from_text(text: str, telegram_user_id: int) -> str:
     parts = [part.strip() for part in text.split("|")]
 
     if len(parts) < 2:
@@ -166,6 +202,7 @@ def add_event_from_text(text: str) -> str:
         price=price,
         status=status or "wishlist",
         notes=notes,
+        telegram_user_id=telegram_user_id,
     )
 
     return (
@@ -176,32 +213,4 @@ def add_event_from_text(text: str) -> str:
         f"Статус: {event['status']}\n"
         f"Ссылка: {event['url'] or '-'}\n"
         f"Заметки: {event['notes'] or '-'}"
-    )
-
-
-def update_event_status_from_text(text: str) -> str:
-    parts = text.split()
-
-    if len(parts) != 2:
-        return (
-            "Неверный формат.\n\n"
-            "Используй:\n"
-            "/status ID новый_статус\n\n"
-            "Пример:\n"
-            "/status 1 booked"
-        )
-
-    event_id_raw, new_status = parts
-
-    try:
-        event_id = int(event_id_raw)
-    except ValueError:
-        return "ID события должен быть числом."
-
-    result = update_event_status(event_id, new_status)
-
-    return (
-        "Статус обновлён:\n\n"
-        f"Событие #{result['event_id']}\n"
-        f"Новый статус: {result['new_status']}"
     )
