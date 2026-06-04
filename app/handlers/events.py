@@ -14,8 +14,9 @@ from app.services.events_service import VALID_STATUSES
 async def events_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message:
         return
+    telegram_user_id = update.effective_user.id
 
-    text = format_events()
+    text = format_events(telegram_user_id)
     await update.message.reply_text(text)
 
 
@@ -23,7 +24,8 @@ async def buy_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message:
         return
 
-    text = format_events("buy")
+    telegram_user_id = update.effective_user.id
+    text = format_events(telegram_user_id, "buy")
     await update.message.reply_text(text)
 
 
@@ -31,7 +33,8 @@ async def booked_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message:
         return
 
-    text = format_events("booked")
+    telegram_user_id = update.effective_user.id
+    text = format_events(telegram_user_id, "booked")
     await update.message.reply_text(text)
 
 

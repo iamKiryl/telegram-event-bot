@@ -50,8 +50,11 @@ def format_price(price: float | None) -> str:
     return f"{price:g} PLN"
 
 
-def format_events(status: str | None = None) -> str:
-    events = get_events_by_status(status)
+def format_events(
+    telegram_user_id: int,
+    status: str | None = None,
+) -> str:
+    events = get_events_by_status(telegram_user_id, status)
 
     if not events:
         if status:
@@ -60,9 +63,9 @@ def format_events(status: str | None = None) -> str:
 
     lines = ["События:\n"]
 
-    for event in events:
+    for index, event in enumerate(events, start=1):
         lines.append(
-            f"#{event['id']} — {event['title']}\n"
+            f"{index}. {event['title']}\n"
             f"Тип: {event['event_type']}\n"
             f"Дата: {event['date_from'] or '-'} {event['start_time'] or ''}\n"
             f"Цена: {format_price(event['price'])}\n"

@@ -113,4 +113,48 @@ def get_event_by_id(
             (event_id, telegram_user_id),
         )
 
+<<<<<<< HEAD
         return cursor.fetchone()
+=======
+        return cursor.fetchone()
+    
+def get_event_by_position(
+    telegram_user_id: int,
+    position: int,
+    status: str | None = None,
+) -> sqlite3.Row | None:
+    events = get_events_by_status(telegram_user_id, status)
+
+    index = position - 1
+
+    if index < 0 or index >= len(events):
+        return None
+
+    return events[index]
+
+def update_user_event_status_in_db(
+    telegram_user_id: int,
+    position: int,
+    new_status: str,
+) -> bool:
+    event = get_event_by_position(telegram_user_id, position)
+
+    if event is None:
+        return False
+
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            UPDATE events
+            SET status = ?
+            WHERE id = ?
+              AND telegram_user_id = ?
+            """,
+            (new_status, event["id"], telegram_user_id),
+        )
+
+        conn.commit()
+        return cursor.rowcount > 0
+>>>>>>> 9af8b5f (feat: add inline status update flow)
