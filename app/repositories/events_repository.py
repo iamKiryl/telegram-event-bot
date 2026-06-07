@@ -27,8 +27,10 @@ def get_events_by_status(
                 """
                 SELECT *
                 FROM events
+                WHERE telegram_user_id = ?
                 ORDER BY date_from ASC, start_time ASC
-                """
+                """,
+                (telegram_user_id,),
             )
 
         return cursor.fetchall()
@@ -153,4 +155,25 @@ def update_user_event_status_in_db(
         )
 
         conn.commit()
+        return cursor.rowcount > 0
+    
+
+def delete_event_from_db(
+    telegram_user_id: int,
+    event_id: int,
+) -> bool:
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            DELETE FROM events
+            WHERE id = ?
+              AND telegram_user_id = ?
+            """,
+            (event_id, telegram_user_id),
+        )
+
+        conn.commit()
+
         return cursor.rowcount > 0

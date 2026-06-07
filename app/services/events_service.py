@@ -3,6 +3,7 @@ from app.repositories.events_repository import (
     get_events_by_status,
     insert_event,
     update_event_status_in_db,
+    delete_event_from_db,
 )
 
 
@@ -217,3 +218,26 @@ def add_event_from_text(text: str, telegram_user_id: int) -> str:
         f"Ссылка: {event['url'] or '-'}\n"
         f"Заметки: {event['notes'] or '-'}"
     )
+
+def delete_event(
+    telegram_user_id: int,
+    event_id: int,
+) -> dict:
+    event = get_event_by_id(telegram_user_id, event_id)
+
+    if event is None:
+        raise LookupError("Событие не найдено.")
+
+    deleted = delete_event_from_db(
+        telegram_user_id=telegram_user_id,
+        event_id=event_id,
+    )
+
+    if not deleted:
+        raise LookupError("Не удалось удалить событие.")
+
+    return {
+        "event_id": event_id,
+        "title": event["title"],
+        "success": True,
+    }

@@ -3,6 +3,7 @@ from telegram.ext import ContextTypes
 
 from app.services.events_service import (
     add_event_from_text,
+    delete_event,
     format_events,
     update_event_status,
 )
@@ -155,3 +156,109 @@ async def status_set_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
         f"{result['title']}\n"
         f"Новый статус: {result['new_status']}"
     )
+
+async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.effective_user:
+        return
+    telegram_user_id = update.effective_user.id
+    events = get_events_by_status(telegram_user_id)
+
+    if not events:
+        await update.message.reply_text("У тебя пока нет событий для удаления.")
+        return
+
+    keyboard = []
+    for event in events:
+        keyboard.append(
+            [
+                InlineKeyboardButton(
+                    text=f"{event['title']} — {event['status']}",
+                    callback_data=f"delete_event:{event['id']}",
+                )
+            ]
+        )
+
+    await update.message.reply_text(
+        "Выбери событие, которое хочешь удалить:", 
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+
+
+async def delete_event_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+
+    if not query or not query.from_user:
+        return
+
+    await query.answer()
+
+    data = query.data or ""
+    event_id_raw = data.removeprefix("delete_event:")
+
+    try:
+        event_id = int(event_id_raw)
+    except ValueError:
+        await query.edit_message_text("Некорректное событие.")
+        return
+
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                text="Да, удалить",
+                callback_data=f"delete_confirm:{event_id}",
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="Отмена",
+                callback_data="delete_cancel",
+            )
+        ],
+    ]
+
+    await query.edit_message_text(
+        "Точно удалить это событие?",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+
+async def delete_confirm_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+
+    if not query or not query.from_user:
+        return
+
+    await query.answer()
+
+    telegram_user_id = query.from_user.id
+    data = query.data or ""
+
+    event_id_raw = data.removeprefix("delete_confirm:")
+
+    try:
+        event_id = int(event_id_raw)
+    except ValueError:
+        await query.edit_message_text("Некорректные данные.")
+        return
+
+    try:
+        result = delete_event(
+            telegram_user_id=telegram_user_id,
+            event_id=event_id,
+        )
+    except LookupError as error:
+        await query.edit_message_text(str(error))
+        return
+
+    await query.edit_message_text(
+        "Событие удалено:\n\n"
+        f"{result['title']}"
+    )
+    
+async def delete_cancel_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+
+    if not query:
+        return
+
+    await query.answer()
+    await query.edit_message_text("Удаление отменено.")
